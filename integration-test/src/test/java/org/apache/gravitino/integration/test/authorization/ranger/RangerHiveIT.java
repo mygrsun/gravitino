@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("gravitino-docker-test")
-public class RangerHiveIT extends RangerIT {
+public class RangerHiveIT extends AbstractRangerIT {
   private static final ContainerSuite containerSuite = ContainerSuite.getInstance();
   private static Connection adminConnection;
   private static Connection anonymousConnection;
@@ -49,9 +49,9 @@ public class RangerHiveIT extends RangerIT {
 
   @BeforeAll
   public static void setup() {
-    RangerIT.setup();
+    AbstractRangerIT.setup();
 
-    containerSuite.startHiveContainer(
+    containerSuite.startHiveRangerContainer(
         new HashMap<>(
             ImmutableMap.of(
                 HiveContainer.HIVE_RUNTIME_VERSION,
@@ -62,14 +62,16 @@ public class RangerHiveIT extends RangerIT {
                     containerSuite.getRangerContainer().getContainerIpAddress(),
                     RangerContainer.RANGER_SERVER_PORT),
                 RangerContainer.DOCKER_ENV_RANGER_HIVE_REPOSITORY_NAME,
-                RangerIT.RANGER_HIVE_REPO_NAME,
+                AbstractRangerIT.RANGER_HIVE_REPO_NAME,
                 RangerContainer.DOCKER_ENV_RANGER_HDFS_REPOSITORY_NAME,
-                RangerIT.RANGER_HDFS_REPO_NAME,
+                AbstractRangerIT.RANGER_HDFS_REPO_NAME,
                 HiveContainer.HADOOP_USER_NAME,
                 adminUser)));
 
-    createRangerHdfsRepository(containerSuite.getHiveContainer().getContainerIpAddress(), true);
-    createRangerHiveRepository(containerSuite.getHiveContainer().getContainerIpAddress(), true);
+    createRangerHdfsRepository(
+        containerSuite.getHiveRangerContainer().getContainerIpAddress(), true);
+    createRangerHiveRepository(
+        containerSuite.getHiveRangerContainer().getContainerIpAddress(), true);
     allowAnyoneAccessHDFS();
     allowAnyoneAccessInformationSchema();
 
@@ -77,7 +79,7 @@ public class RangerHiveIT extends RangerIT {
     String url =
         String.format(
             "jdbc:hive2://%s:%d/default",
-            containerSuite.getHiveContainer().getContainerIpAddress(),
+            containerSuite.getHiveRangerContainer().getContainerIpAddress(),
             HiveContainer.HIVE_SERVICE_PORT);
     try {
       Class.forName("org.apache.hive.jdbc.HiveDriver");

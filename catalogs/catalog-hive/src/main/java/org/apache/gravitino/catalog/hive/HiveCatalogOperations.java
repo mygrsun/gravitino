@@ -95,7 +95,6 @@ import org.apache.hadoop.hive.metastore.api.UnknownDBException;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,7 +233,6 @@ public class HiveCatalogOperations implements CatalogOperations, SupportsSchemas
 
         LOG.info("krb5 path: {}", System.getProperty("java.security.krb5.conf"));
         refreshKerberosConfig();
-        KerberosName.resetDefaultRealm();
         UserGroupInformation.setConfiguration(hadoopConf);
         UserGroupInformation.loginUserFromKeytab(
             catalogPrincipal, keytabPath.toAbsolutePath().toString());
@@ -659,11 +657,11 @@ public class HiveCatalogOperations implements CatalogOperations, SupportsSchemas
         .filter(c -> c instanceof TableChange.ColumnChange)
         .forEach(
             c -> {
-              String fieldToAdd = String.join(".", ((TableChange.ColumnChange) c).fieldName());
+              String fieldName = String.join(".", ((TableChange.ColumnChange) c).fieldName());
               Preconditions.checkArgument(
                   c instanceof TableChange.UpdateColumnComment
-                      || !partitionFields.contains(fieldToAdd),
-                  "Cannot alter partition column: " + fieldToAdd);
+                      || !partitionFields.contains(fieldName),
+                  "Cannot alter partition column: " + fieldName);
 
               if (c instanceof TableChange.UpdateColumnPosition
                   && afterPartitionColumn(
@@ -672,12 +670,16 @@ public class HiveCatalogOperations implements CatalogOperations, SupportsSchemas
                     "Cannot alter column position to after partition column");
               }
 
+              if (c instanceof TableChange.DeleteColumn) {
+                existingFields.remove(fieldName);
+              }
+
               if (c instanceof TableChange.AddColumn) {
                 TableChange.AddColumn addColumn = (TableChange.AddColumn) c;
 
-                if (existingFields.contains(fieldToAdd)) {
+                if (existingFields.contains(fieldName)) {
                   throw new IllegalArgumentException(
-                      "Cannot add column with duplicate name: " + fieldToAdd);
+                      "Cannot add column with duplicate name: " + fieldName);
                 }
 
                 if (addColumn.getPosition() == null) {

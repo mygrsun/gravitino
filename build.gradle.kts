@@ -466,11 +466,14 @@ tasks.rat {
     "dev/docker/**/*.conf",
     "dev/docker/kerberos-hive/kadm5.acl",
     "**/*.log",
+    "**/*.out",
+    "**/testsets",
     "**/licenses/*.txt",
     "**/licenses/*.md",
     "integration-test/**/*.sql",
     "integration-test/**/*.txt",
     "docs/**/*.md",
+    "spark-connector/spark-common/src/test/resources/**",
     "web/.**",
     "web/next-env.d.ts",
     "web/dist/**/*",
@@ -489,7 +492,7 @@ tasks.rat {
     "ROADMAP.md",
     "clients/client-python/.pytest_cache/*",
     "clients/client-python/.venv/*",
-    "clients/client-python/gravitino.egg-info/*",
+    "clients/client-python/apache_gravitino.egg-info/*",
     "clients/client-python/gravitino/utils/exceptions.py",
     "clients/client-python/gravitino/utils/http_client.py",
     "clients/client-python/tests/unittests/htmlcov/*",
@@ -542,6 +545,13 @@ tasks {
         rename { fileName ->
           fileName.replace(".template", "")
         }
+        eachFile {
+          if (name == "gravitino-env.sh") {
+            filter { line ->
+              line.replace("GRAVITINO_VERSION_PLACEHOLDER", "$version")
+            }
+          }
+        }
         fileMode = 0b111101101
       }
       copy {
@@ -568,7 +578,7 @@ tasks {
     doLast {
       copy {
         from(projectDir.dir("conf")) {
-          include("${rootProject.name}-iceberg-rest-server.conf.template", "log4j2.properties.template")
+          include("${rootProject.name}-iceberg-rest-server.conf.template", "${rootProject.name}-env.sh.template", "log4j2.properties.template")
           into("${rootProject.name}-iceberg-rest-server/conf")
         }
         from(projectDir.dir("bin")) {
@@ -578,6 +588,13 @@ tasks {
         into(outputDir)
         rename { fileName ->
           fileName.replace(".template", "")
+        }
+        eachFile {
+          if (name == "gravitino-env.sh") {
+            filter { line ->
+              line.replace("GRAVITINO_VERSION_PLACEHOLDER", "$version")
+            }
+          }
         }
         fileMode = 0b111101101
       }
@@ -771,10 +788,10 @@ fun printDockerCheckInfo() {
   }
 
   println("------------------ Check Docker environment ---------------------")
-  println("Docker server status ............................................ [${if (dockerRunning) "running" else "stop"}]")
+  println("Docker server status ............................................ [${if (dockerRunning) "running" else "\u001B[31mstop\u001B[0m"}]")
   if (OperatingSystem.current().isMacOsX()) {
-    println("mac-docker-connector status ..................................... [${if (macDockerConnector) "running" else "stop"}]")
-    println("OrbStack status ................................................. [${if (dockerRunning && isOrbStack) "yes" else "no"}]")
+    println("mac-docker-connector status ..................................... [${if (macDockerConnector) "running" else "\u001B[31mstop\u001B[0m"}]")
+    println("OrbStack status ................................................. [${if (dockerRunning && isOrbStack) "yes" else "\u001B[31mno\u001B[0m"}]")
   }
 
   val dockerTest = project.extra["dockerTest"] as? Boolean ?: false
